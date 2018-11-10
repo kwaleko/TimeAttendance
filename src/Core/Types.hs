@@ -3,8 +3,8 @@ module Core.Types where
 import  Data.Time
 
 
-type FromTime = LocalTime
-type ToTime   = LocalTime
+type FromTime = TimeOfDay
+type ToTime   = TimeOfDay
 type Date     = Day
 
 
@@ -39,8 +39,8 @@ data Violation = Violation
   {vioEmployee    :: EmpNumber
   ,vioType        :: ViolationType
   ,vioLocalDate   :: Day
-  ,vioFromTime    :: TimeOfDay
-  ,vioToTime      :: TimeOfDay}
+  ,vioFromTime    :: Maybe FromTime
+  ,vioToTime      :: Maybe ToTime}
   deriving(Eq,Show)
 
 data ViolationType =
@@ -56,10 +56,10 @@ data ViolationType =
 
 data Shift = Shift
   {shfUName         :: String
-  ,shfFromTime      :: TimeOfDay
-  ,shfToTime        :: TimeOfDay
-  ,shfLateCheckIn   :: TimeOfDay
-  ,shfEalryCheckOut :: TimeOfDay}
+  ,shfFromTime      :: FromTime
+  ,shfToTime        :: ToTime
+  ,shfLateCheckIn   :: FromTime
+  ,shfEalryCheckOut :: ToTime}
   deriving(Eq,Show)
 
 data Employee = Employee
@@ -74,4 +74,9 @@ data Name = Name
   ,namLast   :: String}
   deriving(Eq,Show)
 
-  
+data Period = Period
+  {periodId   :: String
+  ,periodFrom :: Day
+  ,periodTo   :: Day
+  ,periodName :: String
+  }deriving(Eq,Show)
