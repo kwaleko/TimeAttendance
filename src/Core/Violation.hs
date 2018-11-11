@@ -23,23 +23,29 @@ class Monad m => HasAttendance m where
   getFstLogInByDate   :: EmpNumber -> Day -> m (Maybe LogInRecord)
   getLstLogOutByDate  :: EmpNumber -> Day -> m (Maybe LogOutRecord)
 
+class Monad m => HasPermission m where
+  doesEarlyLeavePermExists :: EmpNumber -> Day -> m Bool
 
-genLateArrivalVio :: (HasAttendance m,HasViolation m,HasShiftSetup m) => EmpNumber -> Date -> m (Maybe Violation)
+class Monad m => HasPeriod m where
+  isHoliday :: Day -> m Bool
+
+genLateArrivalVio :: (HasAttendance m,HasViolation m,HasShiftSetup m,HasPermission m,HasPeriod m)=> EmpNumber -> Date -> m (Maybe Violation)
 genLateArrivalVio emp date = do
-  fst        <- getFstLogInByDate emp date
-  shift      <- getEmpShift emp
-  isViolated <- doesViolationExists emp date LateArrival
+  fst           <- getFstLogInByDate emp date
+  shift         <- getEmpShift emp
+  isNotViolated <- not <$> doesViolationExists emp date LateArrival
+  noPermission  <- not <$> doesEarlyLeavePermExists emp date
+  isNotHoliday  <- not <$> isHoliday date
   return $ do
     logIn  <- fst
     shf    <- shift
     let fromTime      = Just $ shfFromTime shf
         toTime        = Just $ (localTimeOfDay . logInDateTime) logIn
-        isNotViolated = not isViolated
         isLate        = isLateArrival logIn shf
     bool
       Nothing
       (Just $ Violation emp EarlyLeave date fromTime toTime)
-      (isNotViolated && isLate)
+      (isNotViolated && isLate && noPermission && isNotHoliday)
 
 isLateArrival :: LogInRecord -> Shift -> Bool
 isLateArrival logRec shft =
