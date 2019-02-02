@@ -49,7 +49,7 @@ spec = do
     it "should return false for a given day when the employee has no record in the attendance, not absent" $ property $
         hasMissingCheckIn [] `shouldBe` False
 
-  describe "hasMissingCheckIn, testing hasMissingCheckIn" $ do
+  describe "hasMissingCheckIn" $ do
     it "should return False for a given day when the employee has at least one record checkIn" $ property $
       \attRecs ->
         let res              = map attendanceType attRecs
@@ -76,7 +76,7 @@ spec = do
   describe "hasMissingCheckOut" $ do
     it "should return False for a given day when the employee has at least one record checkOut" $ property $
       \attRecs ->
-        let res              = map attendanceType attRecs
+        let res               = map attendanceType attRecs
             checkOutAvailable = (== Out) `any` res
             in checkOutAvailable ==>
               hasMissingCheckOut attRecs `shouldBe` False
@@ -92,3 +92,25 @@ spec = do
                       (hasMissingCheckOut x `shouldBe` False )
                       (hasMissingCheckOut x `shouldBe` True  )
                       (length attRecs == length onlyCheckIn)
+
+{-  describe "hasDoubleCheck" $ do
+    it "should return Nothing when the employee has the first log type as checkIn and the last log type as checkOut" $ property $
+      \(fstLog,lstLog) ->
+        attendanceType fstLog == In &&
+        attendanceType lstLog == Out ==>
+         hasDoubleCheck (fstLog,lstLog) `shouldBe` Nothing
+
+  describe "hasDoubleCheck" $ do
+    it "should return a double checkIn violation when both the first check and last check were both of type checkIn" $ property $
+      \(fstLog,lstLog) ->
+        attendanceType fstLog == In &&
+        attendanceType lstLog == In ==>
+        hasDoubleCheck (fstLog,lstLog) `shouldBe` Just DoubleLogIn
+
+  describe "hasDoubleCheck" $ do
+    it "should return a violation of type double CheckOut when the first and last log are both of type checkOut" $ property $
+      \(fstLog,lstLog) ->
+        attendanceType fstLog == Out &&
+        attendanceType lstLog == Out ==>
+        hasDoubleCheck (fstLog,lstLog) `shouldBe` Just DoubleLogOut
+-}

@@ -19,10 +19,10 @@ class Monad m => HasShiftSetup m where
   getEmpShift  :: EmpNumber -> m (Maybe Shift)
 
 class Monad m => HasAttendance m where
-  getAttendanceRecs   :: EmpNumber -> Day -> m [AttendanceRecord]
+  getLogs             :: EmpNumber -> Day -> m [AttendanceRecord]
+  getLog              :: EmpNumber -> Day -> Order -> m (Maybe AttendanceRecord)
   getFstLogInByDate   :: EmpNumber -> Day -> m (Maybe LogInRecord)
   getLstLogOutByDate  :: EmpNumber -> Day -> m (Maybe LogOutRecord)
-  getLog              :: EmpNumber -> Day -> Order -> m (Maybe AttendanceRecord)
 
 data Order = First | Last
 
@@ -61,6 +61,30 @@ genLateArrivalVio emp date = do
       (Just $ Violation emp EarlyLeave date fromTime toTime)
       (isNotViolated && isLate && noPermission && isNotHoliday && noReducedSchd)
 
+genDoubleCheckVio :: (HasViolation m,HasAttendance m) => EmpNumber -> Date -> m (Maybe Violation)
+genDoubleCheckVio emp date = do
+  mFstLog     <- getLog emp date First
+  mLstLog     <- getLog emp date Last
+  notViolated <- not <$> doesViolationExists emp date DoubleLog
+  return $ do
+    fstLog <- mFstLog
+    lstLog <- mLstLog
+    case (fstLog,lstLog,notViolated) of
+      (AttLogIn log,AttLogIn   _ ,True) -> Just $ Violation emp DoubleLog  date (Just $ getLogInTime log ) Nothing
+      (AttLogOut _ ,AttLogOut log,True) -> Just $ Violation emp DoubleLog date Nothing (Just $ getLogOutTime log)
+      _                                 -> Nothing
+
+{- getMissingLogVio :: (HasViolation m,HasAttendance m,HasCalendar m) => EmpNumber -> Date  -> m (Maybe Violation)
+getMissingLogVio emp date = do
+  logs       <- getLogs emp date
+  isViolated <- doesViolationExists emp date MissingLog
+  let missingIn  = hasMissingCheck In logs
+      missingOut = hasMissingCheck Out logs
+      in return $ case (isViolated,missingIn,missingOut) of
+                    (True,True,_) -> Just $ Violation emp MissingLog date Nothing Nothing
+                    (True,_,True) -> Nothing
+                    _             -> Nothing
+    -}
 isLateArrival :: LogInRecord -> Shift -> Bool
 isLateArrival logRec shft =
   (localTimeOfDay . logInDateTime) logRec > shfLateCheckIn shft
@@ -90,15 +114,7 @@ attendanceType record = case record of
   AttLogIn  _ -> In
   AttLogOut _ -> Out
 
-genDoubleCheckVio :: (HasViolation m,HasAttendance m,HasCalendar m) => EmpNumber -> Date -> m (Maybe Violation)
-genDoubleCheckVio = undefined
-  
+getLogInTime :: LogInRecord -> Time
+getLogInTime = localTimeOfDay . logInDateTime
 
---isDoubleCheck :: (AttendanceRecord,AttendanceRecord) -> Bool
---hasDoubleCheck :: (Maybe AttendanceRecord,Maybe AttendanceRecord) ->  Maybe ViolationType
---hasDoubleCheck  (Just (AttLogIn login)  ,Just (AttLogOut logout)) = Nothing
---hasDoubleCheck  (Just (AttLogIn _)       ,Just (AttLogIn  _     )) = Just DoubleLogIn
---hasDoubleCheck  (Just (AttLogOut _)      ,Just (AttLogOut _     )) = Just DoubleLogOut
---hasDoubleCheck  (Nothing                 ,Just  _                ) = Just MissingLogIn
---hasDoubleCheck  (Just _                  ,Nothing                ) = Just MissingLogOut
---hasDoubleCheck    _                                                = Nothing
+getLogOutTime = localTimeOfDay . logOutDateTime

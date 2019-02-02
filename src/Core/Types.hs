@@ -5,6 +5,7 @@ import  Data.Time
 
 type FromTime = TimeOfDay
 type ToTime   = TimeOfDay
+type Time     = TimeOfDay
 type Date     = Day
 
 
@@ -47,10 +48,12 @@ data ViolationType =
     None
   | LateArrival
   | EarlyLeave
-  | MissingLogIn
-  | MissingLogOut
-  | DoubleLogIn
-  | DoubleLogOut
+--  | MissingLogIn
+ -- | MissingLogOut
+--  | DoubleLogIn
+--  | DoubleLogOut
+   | MissingLog
+   | DoubleLog
   | Absence
   deriving(Eq,Show)
 
@@ -80,3 +83,9 @@ data Period = Period
   ,periodTo   :: Day
   ,periodName :: String
   }deriving(Eq,Show)
+
+data Calendar = Calendar
+  {calendarId      :: String
+  ,calendarDate    :: Date
+  ,calendarWorkDay :: Bool
+  }deriving(Show,Eq)
